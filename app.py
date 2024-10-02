@@ -4,7 +4,7 @@ import pandas as pd
 import json
 import numpy as np
 app = Flask(__name__)
-
+#---------------------------------------------O----------------------------------------------------------
 # Cargar el primer modelo (Decision Tree)
 decision_tree_model = joblib.load('models/modelo_decision_tree.pkl')
 
@@ -38,6 +38,104 @@ input_features_housing = ['area', 'bedrooms', 'bathrooms', 'stories', 'parking',
                           'guestroom', 'basement', 'hotwaterheating', 'airconditioning', 
                           'prefarea', 'furnishingstatus']
 
+#----------------------------------------C----------------------------------------------------------------
+# Cargar el modelo previamente guardado
+modeloCirrosis = joblib.load('models/Cirrosis_RF.pkl') 
+
+# Cargar el modelo previamente guardado
+modeloTelefonico = joblib.load('models/telefonico_SVM.pkl') 
+
+# Cargar el modelo previamente guardado
+modeloVino = joblib.load('models/vino_RF.pkl') 
+
+# Cargar el modelo previamente guardado
+modeloHepatitis = joblib.load('models/Hepatitis_RF.pkl') 
+
+
+#--------------------------------------------------------------------------------------------------------
+
+@app.route('/predict_cirrosis', methods=['POST'])
+def predictCirrosis():
+    try:
+        # Recibir datos en formato JSON
+        data = request.json
+        # Los datos deben estar en el mismo orden que las features que utilizaste para entrenar el modelo
+        features = np.array([data['N_Days'], data['Status'], data['Age'], data['Ascites'], 
+                             data['Hepatomegaly'], data['Spiders'], data['Edema'], 
+                             data['Bilirubin'], data['Albumin'], data['Copper'], data['Alk_Phos'], 
+                             data['SGOT'], data['Tryglicerides'], data['Platelets'], 
+                             data['Prothrombin']])
+
+        # Hacer la predicción
+        prediction = modeloCirrosis.predict([features])
+
+        # Devolver la predicción como respuesta JSON
+        return jsonify({'Stage': int(prediction[0])})
+
+    except Exception as e:
+        return jsonify({'error': str(e)})
+    
+# Ruta para hacer predicciones
+@app.route('/predict_telephony', methods=['POST'])
+def predictTelefonico():
+    try:
+        # Recibir datos en formato JSON
+        data = request.json
+        # Los datos deben estar en el mismo orden que las features que utilizaste para entrenar el modelo
+        features = np.array([data['SeniorCitizen'], data['Partner'], data['Dependents'], data['tenure'], 
+                             data['InternetService'], data['OnlineSecurity'], data['OnlineBackup'], 
+                             data['DeviceProtection'], data['TechSupport'], data['Contract'], data['PaperlessBilling'], 
+                             data['PaymentMethod'], data['MonthlyCharges']])
+
+        # Hacer la predicción
+        prediction = modeloTelefonico.predict([features])
+
+        # Devolver la predicción como respuesta JSON
+        return jsonify({'Churn': int(prediction[0])})
+
+    except Exception as e:
+        return jsonify({'error': str(e)})
+    
+# Ruta para hacer predicciones
+@app.route('/classify_vino', methods=['POST'])
+def predictVinoo():
+    try:
+        # Recibir datos en formato JSON
+        data = request.json
+        # Los datos deben estar en el mismo orden que las features que utilizaste para entrenar el modelo
+        features = np.array([data['volatile acidity'], data['citric acid'], data['chlorides'], data['total sulfur dioxide'], 
+                             data['density'], data['sulphates'], data['alcohol']])
+
+        # Hacer la predicción
+        prediction = modeloVino.predict([features])
+
+        # Devolver la predicción como respuesta JSON
+        return jsonify({'La calidad del vino es': int(prediction[0])})
+
+    except Exception as e:
+        return jsonify({'error': str(e)})
+    
+# Ruta para hacer predicciones
+@app.route('/predict_hepatitis', methods=['POST'])
+def predictHepatitis():
+    try:
+        # Recibir datos en formato JSON
+        data = request.json
+        # Los datos deben estar en el mismo orden que las features que utilizaste para entrenar el modelo
+        features = np.array([data['Sex'], data['ALB'], data['ALT'], 
+                             data['AST'], data['BIL'], data['CHE'],
+                             data['CHOL'], data['CREA'], data['GGT']])
+
+        # Hacer la predicción
+        prediction = modeloHepatitis.predict([features])
+
+        # Devolver la predicción como respuesta JSON
+        return jsonify({'La clasificación de la persona es': int(prediction[0])})
+
+    except Exception as e:
+        return jsonify({'error': str(e)})
+
+#--------------------------------------------------------------------------------------------------------
 
 @app.route('/predict_price_vehicle', methods=['POST'])
 def predict_decision_tree():
@@ -146,7 +244,7 @@ def predict_house_price():
         return jsonify(output)
     except Exception as e:
         return jsonify({'error': str(e)}), 500
-
+#--------------------------------------------------------------------------------------------------------
 
 if __name__ == '__main__':
     app.run(debug=True)
