@@ -3,7 +3,9 @@ import joblib
 import pandas as pd
 import json
 import numpy as np
+from flask_cors import CORS
 app = Flask(__name__)
+CORS(app);
 #---------------------------------------------O----------------------------------------------------------
 # Cargar el primer modelo (Decision Tree)
 decision_tree_model = joblib.load('models/modelo_decision_tree.pkl')
