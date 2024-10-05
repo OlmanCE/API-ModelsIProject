@@ -1,11 +1,12 @@
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, Response
 import joblib
 import pandas as pd
 import json
 import numpy as np
 from flask_cors import CORS
 app = Flask(__name__)
-CORS(app);
+CORS(app)
+# CORS(app, resources={r"/api/*": {"origins": "*"}})
 #---------------------------------------------O----------------------------------------------------------
 # Cargar el primer modelo (Decision Tree)
 decision_tree_model = joblib.load('models/modelo_decision_tree.pkl')
@@ -34,11 +35,11 @@ input_features_stroke = ['gender', 'age', 'hypertension', 'heart_disease', 'ever
 # Cargar el modelo XGBoost (predicción de precios de casas)
 xgb_pipeline_model = joblib.load('models/xgb_pipeline_housing.joblib')
 
-# Definir las características de entrada del modelo XGBoost
-input_features_housing = ['area', 'bedrooms', 'bathrooms', 'stories', 'parking', 
-                          'area_per_room', 'total_rooms', 'price_per_area', 'mainroad', 
-                          'guestroom', 'basement', 'hotwaterheating', 'airconditioning', 
-                          'prefarea', 'furnishingstatus']
+# # Definir las características de entrada del modelo XGBoost
+# input_features_housing = ['area', 'bedrooms', 'bathrooms', 'stories', 'parking', 
+#                           'area_per_room', 'total_rooms', 'price_per_area', 'mainroad', 
+#                           'guestroom', 'basement', 'hotwaterheating', 'airconditioning', 
+#                           'prefarea', 'furnishingstatus']
 
 #----------------------------------------C----------------------------------------------------------------
 # Cargar el modelo previamente guardado
@@ -56,8 +57,26 @@ modeloHepatitis = joblib.load('models/Hepatitis_RF.pkl')
 
 #--------------------------------------------------------------------------------------------------------
 
+# Cargar el modelo guardado
+model_bitcoin = joblib.load('models/bitcoin.pkl')
+
+# Cargar el modelo guardado
+model_Market = joblib.load('models/mercadoSP.pkl')
+
+#--------------------------------------------------------------------------------------------------------
+
+
+
 @app.route('/predict_cirrosis', methods=['POST'])
 def predictCirrosis():
+
+    STAGE_MAPPING = {
+    1: 'El paciente tiene fibrosis leve',
+    2: 'El paciente tiene fibrosis moderada',
+    3: 'El paciente tiene fibrosis avanzada',
+    4: 'El paciente tiene cirrosis'
+}
+
     try:
         # Recibir datos en formato JSON
         data = request.json
@@ -71,8 +90,13 @@ def predictCirrosis():
         # Hacer la predicción
         prediction = modeloCirrosis.predict([features])
 
+
+        predicted_class = int(prediction[0])
+
+        stage_description = STAGE_MAPPING.get(predicted_class, 'Desconocido')
         # Devolver la predicción como respuesta JSON
-        return jsonify({'Stage': int(prediction[0])})
+        # cuatro posibles opciones
+        return jsonify(stage_description)
 
     except Exception as e:
         return jsonify({'error': str(e)})
@@ -80,6 +104,11 @@ def predictCirrosis():
 # Ruta para hacer predicciones
 @app.route('/predict_telephony', methods=['POST'])
 def predictTelefonico():
+    CHURN_MAPPING = {
+        0: 'El usuario no va a abandonar la empresa',
+        1: 'El usuario va a abandonar la empresa'
+    }
+
     try:
         # Recibir datos en formato JSON
         data = request.json
@@ -92,8 +121,14 @@ def predictTelefonico():
         # Hacer la predicción
         prediction = modeloTelefonico.predict([features])
 
+        # Obtener el valor entero de la predicción
+        predicted_class = int(prediction[0])
+
+        # Mapear la clase predicha a la descripción correspondiente
+        churn_description = CHURN_MAPPING.get(predicted_class, 'Desconocido')
+
         # Devolver la predicción como respuesta JSON
-        return jsonify({'Churn': int(prediction[0])})
+        return jsonify(churn_description)
 
     except Exception as e:
         return jsonify({'error': str(e)})
@@ -101,6 +136,12 @@ def predictTelefonico():
 # Ruta para hacer predicciones
 @app.route('/classify_vino', methods=['POST'])
 def predictVinoo():
+
+    WINE_QUALITY ={
+        0: "La calidad del vino es mala",
+        1: "La calidad del vino es buena"
+
+    }
     try:
         # Recibir datos en formato JSON
         data = request.json
@@ -111,15 +152,26 @@ def predictVinoo():
         # Hacer la predicción
         prediction = modeloVino.predict([features])
 
+        predicted_class = int(prediction[0])
+
+
+        wine_description = WINE_QUALITY.get(predicted_class)
         # Devolver la predicción como respuesta JSON
-        return jsonify({'La calidad del vino es': int(prediction[0])})
+        # 0 Mala 1 Calidad buena
+        return jsonify(wine_description)
 
     except Exception as e:
         return jsonify({'error': str(e)})
     
 # Ruta para hacer predicciones
+# 0 no tiene 1 si tiene hepatitis
 @app.route('/predict_hepatitis', methods=['POST'])
 def predictHepatitis():
+    HEPATITIS_MAPPING ={
+        0 : "El paciente no tiene Hepatitis.",
+        1 : "El paciente tiene Hepatitis"
+    }
+
     try:
         # Recibir datos en formato JSON
         data = request.json
@@ -131,8 +183,11 @@ def predictHepatitis():
         # Hacer la predicción
         prediction = modeloHepatitis.predict([features])
 
+        predicted_class = int(prediction[0])
+
+        hapatitis_description = HEPATITIS_MAPPING.get(predicted_class, 'Desconocido')
         # Devolver la predicción como respuesta JSON
-        return jsonify({'La clasificación de la persona es': int(prediction[0])})
+        return jsonify(hapatitis_description)
 
     except Exception as e:
         return jsonify({'error': str(e)})
@@ -156,10 +211,14 @@ def predict_decision_tree():
         # Realizar las predicciones con el Decision Tree
         predictions = decision_tree_model.predict(input_data)
         
-        # Convertir las predicciones a una lista de Python
-        output = {'predicted_prices': predictions.tolist()}
+    
+        # Obtener el precio predicho
+        predicted_price = predictions[0]
         
-        return jsonify(output)
+        # Formatear la respuesta
+        response_text = f"El precio del vehículo es {float(predicted_price)} dolares"
+        
+        return jsonify(response_text)
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
@@ -180,14 +239,21 @@ def predict_random_forest():
         # Realizar las predicciones con el modelo Random Forest
         predictions = random_forest_model.predict(input_data)
 
-        # Convertir las predicciones a una lista de Python
-        output = {'predicted_bodyfat': predictions.tolist()}
-        
-        return jsonify(output)
+        # Obtener el precio predicho
+        predicted_bodyfat = predictions[0]
+        # Formatear la respuesta
+        response_text = f"El porcentaje de grasa corporal es {predicted_bodyfat}"
+        return jsonify(response_text)
     except Exception as e:
         return jsonify({'error': str(e)}), 500
+    
 @app.route('/predict_stroke', methods=['POST'])
 def predict_stroke():
+    STROKE_MAPPING = {
+        0: "El paciente no tiene riesgo de sufrir un ataque cardiovascular",
+        1: "El paciente tiene riesgo de sufrir un ataque cardiovascular"
+    }
+    
     try:
         # Obtener los datos JSON del request
         data = request.get_json(force=True)
@@ -207,46 +273,131 @@ def predict_stroke():
         threshold = 0.25
         predictions = (y_pred_proba >= threshold).astype(int)
 
-        # Convertir las predicciones a una lista de Python
-        output = {'predicted_stroke_risk': predictions.tolist()}
+        # Preparar la respuesta
+        if len(predictions) == 1:
+            stroke_description = STROKE_MAPPING.get(predictions[0], 'Desconocido')
+            response = stroke_description
+        else:
+            response = [STROKE_MAPPING.get(pred, 'Desconocido') for pred in predictions]
         
-        return jsonify(output)
+        return jsonify(response)
+    
     except Exception as e:
         return jsonify({'error': str(e)}), 500
-
 @app.route('/predict_house_price', methods=['POST'])
 def predict_house_price():
     try:
         # Obtener los datos JSON del request
         data = request.get_json(force=True)
 
+        # Función para transformar los datos de entrada
+        def transform_input(entry):
+            # Convertir 1/0 a yes/no
+            boolean_fields = ['mainroad', 'guestroom', 'basement', 'hotwaterheating', 'airconditioning', 'prefarea']
+            for field in boolean_fields:
+                entry[field] = 'yes' if entry[field] == 1 else 'no'
+            
+            # Convertir el estado de amueblado
+            furnishing_map = {0: 'unfurnished', 1: 'furnished', 2: 'semi-furnished'}
+            entry['furnishingstatus'] = furnishing_map.get(entry['furnishingstatus'], 'unfurnished')
+            
+            return entry
+
         # Verificar si 'data' es una lista (múltiples entradas) o un diccionario (una sola entrada)
         if isinstance(data, list):
-            # Convertir la lista de entradas en un DataFrame
-            input_data = pd.DataFrame(data)
+            input_data = pd.DataFrame([transform_input(entry) for entry in data])
         else:
-            # Convertir la entrada única en un DataFrame
-            input_data = pd.DataFrame([data])
+            input_data = pd.DataFrame([transform_input(data)])
 
         # Realizar los cálculos de ingeniería de características automáticamente
         input_data['total_rooms'] = input_data['bedrooms'] + input_data['bathrooms']
         input_data['area_per_room'] = input_data['area'] / input_data['total_rooms']
 
         # Asegurarse de que las columnas estén en el orden correcto y coincidan con las características usadas en el modelo
-        input_data = input_data[['area', 'bedrooms', 'bathrooms', 'stories', 'mainroad', 'guestroom', 
-                                 'basement', 'hotwaterheating', 'airconditioning', 'parking', 'prefarea', 
-                                 'furnishingstatus', 'area_per_room', 'total_rooms']]
+        input_data = input_data[['area', 'bedrooms', 'bathrooms', 'stories', 'mainroad', 'guestroom', 'basement', 'hotwaterheating', 'airconditioning', 'parking', 'prefarea', 'furnishingstatus', 'area_per_room', 'total_rooms']]
 
         # Realizar las predicciones con el modelo XGBoost
         predictions = xgb_pipeline_model.predict(input_data)
 
-        # Convertir las predicciones a una lista de Python
-        output = {'predicted_house_prices': predictions.tolist()}
+        # Preparar la respuesta
+        if len(predictions) == 1:
+            response = f"El precio de la casa es: {float(predictions[0])} dolares"
+        else:
+            response = f"Precios predecidos {[float(price) for price in predictions]}"
 
-        return jsonify(output)
+        return jsonify(response)
+
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 #--------------------------------------------------------------------------------------------------------
+@app.route('/predict_bitcoin', methods=['POST'])
+def predict_predict_bitcoin():
+    # Última fecha del conjunto de datos del modelo
+    ultima_fecha_modelo = pd.Timestamp('2017-07-31')
+    try:
+        # Obtener los datos de la solicitud
+        data = request.json
+        year = int(data.get('year'))
+        month = int(data.get('month'))
+        day = int(data.get('day'))
+
+        # Crear la fecha con los datos recibidos
+        fecha_input = f'{year}-{month:02d}-{day:02d}'
+        fecha_dt = pd.Timestamp(fecha_input)  # Convertir a pandas.Timestamp
+
+        # Validar que la fecha de entrada sea mayor a la fecha del modelo
+        if fecha_dt <= ultima_fecha_modelo:
+            return jsonify({'error': 'La fecha debe ser mayor que la última fecha conocida en el modelo.'}), 400
+
+        # Realizar la predicción
+        prediccion = model_bitcoin.predict(fecha_dt)
+
+        # Devolver la predicción
+        return jsonify({'prediccion': prediccion[0]})
+
+    except KeyError as e:
+        return jsonify({'error': f"KeyError: {e}. Verifica si la fecha existe en los datos del modelo."}), 400
+    except TypeError as e:
+        return jsonify({'error': f"TypeError: {e}. Verifica el formato de entrada esperado por el modelo."}), 400
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/mercadoSP', methods=['POST'])
+def predict_mercadoSP():
+    # Última fecha del conjunto de datos del modelo
+    try:
+        ultima_fecha_modelo = pd.Timestamp('2018-02-07')
+        # Obtener los datos de la solicitud
+        data = request.json
+        year = int(data.get('year'))
+        month = int(data.get('month'))
+        day = int(data.get('day'))
+
+        # Crear la fecha con los datos recibidos
+        fecha_input = f'{year}-{month:02d}-{day:02d}'
+        fecha_dt = pd.Timestamp(fecha_input)  # Convertir a pandas.Timestamp
+
+        # Validar que la fecha de entrada sea mayor a la fecha del modelo
+        if fecha_dt <= ultima_fecha_modelo:
+            return jsonify({'error': 'La fecha debe ser mayor que la última fecha conocida en el modelo.'}), 400
+
+        # Realizar la predicción
+        prediccion = model_Market.predict(fecha_dt)
+
+        # Devolver la predicción
+        return jsonify({'prediccion': prediccion[0]})
+
+    except KeyError as e:
+        return jsonify({'error': f"KeyError: {e}. Verifica si la fecha existe en los datos del modelo."}), 400
+    except TypeError as e:
+        return jsonify({'error': f"TypeError: {e}. Verifica el formato de entrada esperado por el modelo."}), 400
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+#--------------------------------------------------------------------------------------------------------
+
 
 if __name__ == '__main__':
     app.run(debug=True)
