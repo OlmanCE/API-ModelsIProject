@@ -330,7 +330,6 @@ def predict_house_price():
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 #--------------------------------------------------------------------------------------------------------
-#--------------------------------------------------------------------------------------------------------
 @app.route('/predict_bitcoin', methods=['POST'])
 def predict_predict_bitcoin():
     # Última fecha del conjunto de datos del modelo
@@ -353,10 +352,8 @@ def predict_predict_bitcoin():
         # Realizar la predicción
         prediccion = model_bitcoin.predict(fecha_dt)
 
-        response = f"El precio del bitcoin el {day} del mes {month} del {year} es: {round(float(prediccion), 3) } dolares"
         # Devolver la predicción
-        return jsonify(response)
-        # return jsonify({'prediccion': prediccion[0]})
+        return jsonify({'prediccion': prediccion[0]})
 
     except KeyError as e:
         return jsonify({'error': f"KeyError: {e}. Verifica si la fecha existe en los datos del modelo."}), 400
@@ -388,15 +385,8 @@ def predict_mercadoSP():
         # Realizar la predicción
         prediccion = model_Market.predict(fecha_dt)
 
-
-        response = f"El precio de las acciones del mercado S y P del {day} del mes {month} del {year} es: {round(float(prediccion), 3) } dolares"
         # Devolver la predicción
-        return jsonify(response)
-        # return jsonify({'prediccion': prediccion[0]})
-
-
-        # Devolver la predicción
-        # return jsonify({'prediccion': prediccion[0]})
+        return jsonify({'prediccion': prediccion[0]})
 
     except KeyError as e:
         return jsonify({'error': f"KeyError: {e}. Verifica si la fecha existe en los datos del modelo."}), 400
@@ -404,6 +394,8 @@ def predict_mercadoSP():
         return jsonify({'error': f"TypeError: {e}. Verifica el formato de entrada esperado por el modelo."}), 400
     except Exception as e:
         return jsonify({'error': str(e)}), 500
+
+
 #--------------------------------------------------------------------------------------------------------
 
 
